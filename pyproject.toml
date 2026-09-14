@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "foldovation"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "opencv-python",
+    "numpy",
+    "Pillow",
+    "python-docx",
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    "pydantic-settings",
+]
+
+[project.scripts]
+generate-token = "scripts.generate_token:generate"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["foldo*"]

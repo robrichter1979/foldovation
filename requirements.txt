@@ -1,0 +1,8 @@
+opencv-python
+numpy
+Pillow
+python-docx
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic-settings

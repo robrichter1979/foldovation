@@ -1,0 +1,8 @@
+.env
+tokens.db
+__pycache__/
+*.pyc
+*.pyo
+image_data/mapping_samples_cache.json
+web/node_modules/
+web/.next/

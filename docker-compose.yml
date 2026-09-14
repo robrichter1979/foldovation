@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # persist the token database and sample cache outside the container
+      - ./tokens.db:/app/tokens.db
+      - ./image_data/mapping_samples_cache.json:/app/image_data/mapping_samples_cache.json
+    environment:
+      CORS_ORIGIN: "http://localhost:3000"
