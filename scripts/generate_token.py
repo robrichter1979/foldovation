@@ -10,6 +10,7 @@ from email.message import EmailMessage
 
 sys.path.insert(0, __import__("os").path.join(__import__("os").path.dirname(__file__), ".."))
 from foldo.config import settings
+from scripts.generate_instructions_pdf import build_pdf_bytes
 
 SENDER = "foldovation@gmail.com"
 
@@ -73,8 +74,12 @@ Visit {settings.app_url} and enter your email address along with this token to g
 
 The token is single-use — once you download your PDF it will expire.
 
+Please find the full step-by-step instructions attached as a PDF.
+
 – The Foldovation Team
 """)
+    pdf_bytes = build_pdf_bytes(token)
+    msg.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename="foldovation_instructions.pdf")
 
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
