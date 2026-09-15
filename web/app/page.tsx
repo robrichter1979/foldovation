@@ -3,6 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import ResultCard from "@/components/ResultCard"
 
+function uuid() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16)
+  })
+}
+
 const MAX_IMAGES = 10
 
 const CATEGORIES = ["Beginner", "Easy", "Intermediate", "Hard", "Expert"] as const
@@ -152,7 +159,7 @@ export default function Home() {
           )
         }
         const toAdd = imageFiles.slice(0, remaining).map((file) => ({
-          id: crypto.randomUUID(),
+          id: uuid(),
           file,
           previewUrl: URL.createObjectURL(file),
           mapping: allMappings[0] ?? "",
