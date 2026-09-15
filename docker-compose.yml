@@ -3,9 +3,9 @@ services:
     build: .
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     volumes:
       # persist the token database and sample cache outside the container
       - ./tokens.db:/app/tokens.db
       - ./image_data/mapping_samples_cache.json:/app/image_data/mapping_samples_cache.json
-    environment:
-      CORS_ORIGIN: "http://localhost:3000"
