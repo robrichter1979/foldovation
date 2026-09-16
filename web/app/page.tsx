@@ -44,16 +44,17 @@ type ResultEntry = {
 export default function Home() {
   const [allMappings, setAllMappings] = useState<string[]>([])
   const [mappingSamples, setMappingSamples] = useState<Record<string, string>>({})
-  const [samplesLoading, setSamplesLoading] = useState(false)
   const [images, setImages] = useState<ImageEntry[]>([])
   const [results, setResults] = useState<ResultEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [truncationWarning, setTruncationWarning] = useState<string | null>(null)
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(["Beginner"]))
   const [downloading, setDownloading] = useState(false)
-  const [view, setView] = useState<"token" | "upload" | "preview">("token")
+  const [openMappingId, setOpenMappingId] = useState<string | null>(null)
+  const [previewStatus, setPreviewStatus] = useState<Record<string, "loading" | "done" | "error">>({})
+
+  const [view, setView] = useState<"token" | "upload" | "preview" | "success">("token")
   const [tokenInput, setTokenInput] = useState("")
   const [emailInput, setEmailInput] = useState("")
   const [tokenError, setTokenError] = useState<string | null>(null)
@@ -96,6 +97,7 @@ export default function Home() {
       // Token is now used — clear the session
       sessionStorage.removeItem("foldo_session")
       setSession(null)
+      setView("success")
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Download failed")
     } finally {
@@ -103,24 +105,15 @@ export default function Home() {
     }
   }
 
-  const toggleCategory = (cat: string) =>
-    setExpandedCategories((prev) => {
-      const next = new Set(prev)
-      next.has(cat) ? next.delete(cat) : next.add(cat)
-      return next
-    })
-
-  useEffect(() => {
+useEffect(() => {
     fetch("/api/mappings")
       .then((r) => r.json())
       .then((d) => setAllMappings(d.mappings))
       .catch(() => setError("Could not connect to API. Is the FastAPI server running?"))
 
-    setSamplesLoading(true)
     fetch("/api/mapping-samples")
       .then((r) => r.json())
       .then((d) => setMappingSamples(d.samples))
-      .finally(() => setSamplesLoading(false))
   }, [])
 
   // Fill in mapping for entries added before mappings loaded
@@ -186,30 +179,40 @@ export default function Home() {
     setLoading(true)
     setResults([])
     setError(null)
-    try {
-      const settled = await Promise.all(
-        images.map(async (entry) => {
+    setPreviewStatus(Object.fromEntries(images.map((e) => [e.id, "loading"])))
+
+    const resultMap: Record<string, ResultEntry> = {}
+    let anyError = false
+
+    await Promise.all(
+      images.map(async (entry) => {
+        try {
           const form = new FormData()
           form.append("image", entry.file)
           form.append("mappings", entry.mapping)
           const res = await fetch("/api/preview", { method: "POST", body: form })
           if (!res.ok) throw new Error(await res.text())
           const data = await res.json()
-          return {
+          resultMap[entry.id] = {
             id: entry.id,
             fileName: entry.file.name,
             mapping: entry.mapping,
             original: data.original,
             foldo: data.results[0]?.image ?? "",
           }
-        })
-      )
-      setResults(settled)
+          setPreviewStatus((prev) => ({ ...prev, [entry.id]: "done" }))
+        } catch (e) {
+          anyError = true
+          setPreviewStatus((prev) => ({ ...prev, [entry.id]: "error" }))
+          setError(e instanceof Error ? e.message : "An error occurred")
+        }
+      })
+    )
+
+    setLoading(false)
+    if (!anyError) {
+      setResults(images.map((e) => resultMap[e.id]))
       setView("preview")
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "An error occurred")
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -259,7 +262,7 @@ export default function Home() {
       <div className="min-h-screen bg-slate-50 font-sans flex items-center justify-center px-6">
         <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-6">
           <div>
-            <h1 className="text-lg font-semibold text-slate-900">Foldology</h1>
+            <h1 className="text-lg font-semibold text-slate-900">Foldovation</h1>
             <p className="text-sm text-slate-500 mt-1">Enter your email and access token to continue.</p>
           </div>
 
@@ -310,6 +313,28 @@ export default function Home() {
     )
   }
 
+  if (view === "success") {
+    return (
+      <div className="min-h-screen bg-slate-50 font-sans flex items-center justify-center px-6">
+        <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-6 text-center">
+          <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-3xl mx-auto">
+            ✓
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">Download complete!</h1>
+            <p className="text-sm text-slate-500 mt-2">
+              Thanks for using Foldovation! Your file{" "}
+              <strong className="text-slate-700">foldo_images.pdf</strong> has been saved to your desktop.
+            </p>
+          </div>
+          <p className="text-xs text-slate-400">
+            Your access token has been used.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   if (view === "preview") {
     return (
       <div className="min-h-screen bg-slate-50 font-sans">
@@ -320,10 +345,30 @@ export default function Home() {
           >
             ← Back
           </button>
-          <h1 className="text-lg font-semibold tracking-tight text-slate-900">Foldology Preview</h1>
+          <h1 className="text-lg font-semibold tracking-tight text-slate-900">Foldovation</h1>
         </header>
 
         <main className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+
+          {/* Step indicator */}
+          <div className="flex items-center gap-2 text-sm">
+            {[
+              { n: 1, label: "Upload images" },
+              { n: 2, label: "Choose mappings" },
+              { n: 3, label: "Preview & download" },
+            ].map(({ n, label }, i) => (
+              <div key={n} className="flex items-center gap-2">
+                {i > 0 && <span className="text-slate-300">→</span>}
+                <div className={`flex items-center gap-1.5 ${n === 3 ? "text-blue-600 font-semibold" : "text-slate-400"}`}>
+                  <span className={`h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold ${n === 3 ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500"}`}>
+                    {n}
+                  </span>
+                  <span className="hidden sm:inline">{label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {results.map((r) => (
               <ResultCard key={r.id} {...r} formatLabel={formatLabel} />
@@ -363,10 +408,37 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-200 px-6 py-4">
-        <h1 className="text-lg font-semibold tracking-tight text-slate-900">Foldology Preview</h1>
+        <h1 className="text-lg font-semibold tracking-tight text-slate-900">Foldovation</h1>
       </header>
 
+      {openMappingId !== null && (
+        <div className="fixed inset-0 z-10" onClick={() => setOpenMappingId(null)} />
+      )}
+
       <main className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 text-sm">
+          {[
+            { n: 1, label: `Upload images (${images.length}/${MAX_IMAGES})` },
+            { n: 2, label: "Choose mappings" },
+            { n: 3, label: "Preview & download" },
+          ].map(({ n, label }, i) => {
+            const active = n === (images.length < MAX_IMAGES ? 1 : 2)
+            return (
+              <div key={n} className="flex items-center gap-2">
+                {i > 0 && <span className="text-slate-300">→</span>}
+                <div className={`flex items-center gap-1.5 ${active ? "text-blue-600 font-semibold" : "text-slate-400"}`}>
+                  <span className={`h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold ${active ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500"}`}>
+                    {n}
+                  </span>
+                  <span className="hidden sm:inline">{label}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
           {/* Actions */}
           <div className="flex gap-3">
@@ -457,15 +529,28 @@ export default function Home() {
                       className="h-10 w-10 rounded-lg object-cover border border-slate-200 shrink-0"
                     />
                     <p className="text-sm text-slate-700 truncate flex-1 min-w-0">{entry.file.name}</p>
-                    <select
-                      value={entry.mapping}
-                      onChange={(e) => setMapping(entry.id, e.target.value)}
-                      className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 shrink-0"
+                    {previewStatus[entry.id] === "loading" && (
+                      <span className="h-5 w-5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin shrink-0" />
+                    )}
+                    {previewStatus[entry.id] === "done" && (
+                      <span className="text-emerald-500 font-bold shrink-0">✓</span>
+                    )}
+                    {previewStatus[entry.id] === "error" && (
+                      <span className="text-red-400 font-bold shrink-0">✗</span>
+                    )}
+                    <button
+                      onClick={() => setOpenMappingId(openMappingId === entry.id ? null : entry.id)}
+                      className={`relative h-10 w-10 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
+                        openMappingId === entry.id ? "border-blue-500 shadow-sm" : "border-slate-200 hover:border-slate-300"
+                      }`}
+                      title={formatLabel(entry.mapping)}
                     >
-                      {allMappings.map((m) => (
-                        <option key={m} value={m}>{formatLabel(m)}</option>
-                      ))}
-                    </select>
+                      {mappingSamples[entry.mapping] ? (
+                        <img src={mappingSamples[entry.mapping]} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-slate-100" />
+                      )}
+                    </button>
                     <button
                       onClick={() => removeImage(entry.id)}
                       aria-label="Remove"
@@ -491,84 +576,66 @@ export default function Home() {
                       .
                     </p>
                   )}
+
+                  {/* Per-image mapping picker */}
+                  {openMappingId === entry.id && (
+                    <div className="ml-9 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm relative z-20">
+                      <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
+                        <span className="text-xs font-medium text-slate-600">Choose a mapping</span>
+                        <button
+                          onClick={() => setOpenMappingId(null)}
+                          aria-label="Close picker"
+                          className="text-slate-400 hover:text-slate-700 transition-colors text-xl leading-none"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {CATEGORIES.map((cat) => {
+                        const catMappings = allMappings.filter((n) => getCategory(n) === cat)
+                        if (catMappings.length === 0) return null
+                        return (
+                          <div key={cat}>
+                            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 text-xs font-medium text-slate-500 uppercase tracking-wide">
+                              {cat}
+                            </div>
+                            <div className="p-2 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
+                              {catMappings.map((name) => (
+                                <button
+                                  key={name}
+                                  onClick={() => {
+                                    setMapping(entry.id, name)
+                                    setOpenMappingId(null)
+                                  }}
+                                  className={`relative rounded-lg overflow-hidden border-2 transition-all ${
+                                    entry.mapping === name
+                                      ? "border-blue-500 shadow-sm scale-105"
+                                      : "border-transparent hover:border-slate-300"
+                                  }`}
+                                  title={formatLabel(name)}
+                                >
+                                  {mappingSamples[name] ? (
+                                    <img src={mappingSamples[name]} alt={formatLabel(name)} className="w-full aspect-square object-cover" />
+                                  ) : (
+                                    <div className="w-full aspect-square bg-slate-100 animate-pulse" />
+                                  )}
+                                  <div className={`absolute bottom-0 inset-x-0 text-center py-0.5 font-medium ${
+                                    entry.mapping === name ? "bg-blue-500 text-white" : "bg-black/40 text-white"
+                                  }`} style={{ fontSize: "7px", lineHeight: "11px" }}>
+                                    {formatLabel(name)}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
 
-          {/* Mapping selection - shown after images are uploaded */}
-          {images.length > 0 && allMappings.length > 0 && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Mapping options{" "}
-                <span className="text-slate-400 font-normal">— click a mapping to apply to all images</span>
-              </label>
-              {CATEGORIES.map((cat) => {
-                const catMappings = allMappings.filter((n) => getCategory(n) === cat)
-                if (catMappings.length === 0) return null
-                const isOpen = expandedCategories.has(cat)
-                return (
-                  <div key={cat} className="border border-slate-200 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleCategory(cat)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
-                    >
-                      <span className="text-sm font-medium text-slate-700">{cat}</span>
-                      <span className="flex items-center gap-2 text-xs text-slate-400">
-                        {catMappings.length} mappings
-                        <span className="text-slate-400">{isOpen ? "▲" : "▼"}</span>
-                      </span>
-                    </button>
-                    {isOpen && (
-                      <div className="p-3">
-                        {samplesLoading ? (
-                          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                            {catMappings.map((name) => (
-                              <div key={name} className="aspect-square bg-slate-100 rounded-xl animate-pulse" />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                            {catMappings.map((name) => {
-                              const allSelected = images.every((e) => e.mapping === name)
-                              return (
-                                <button
-                                  key={name}
-                                  onClick={() =>
-                                    setImages((prev) => prev.map((e) => ({ ...e, mapping: name })))
-                                  }
-                                  className={`relative rounded-xl overflow-hidden border-2 transition-all ${
-                                    allSelected
-                                      ? "border-blue-500 shadow-md scale-105"
-                                      : "border-transparent hover:border-slate-300"
-                                  }`}
-                                >
-                                  {mappingSamples[name] ? (
-                                    <img
-                                      src={mappingSamples[name]}
-                                      alt={formatLabel(name)}
-                                      className="w-full aspect-square object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-full aspect-square bg-slate-100" />
-                                  )}
-                                  <div className={`absolute bottom-0 inset-x-0 text-center text-xs py-0.5 font-medium ${
-                                    allSelected ? "bg-blue-500 text-white" : "bg-black/40 text-white"
-                                  }`}>
-                                    {formatLabel(name)}
-                                  </div>
-                                </button>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
         </div>
 
         {/* Loading skeleton */}

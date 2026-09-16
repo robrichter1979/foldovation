@@ -92,17 +92,6 @@ cd web && npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
----
-
-## Running with Docker
-
-```bash
-docker-compose up --build
-```
-
-The API runs on port `8000`. Run the Next.js frontend separately (see above) or deploy it to Vercel.
-
-> Note: if deploying both API and frontend via Docker, update the `destination` URL in `web/next.config.js` from `http://localhost:8000` to `http://api:8000` to use Docker's internal network.
 
 ---
 
