@@ -160,8 +160,9 @@ def _build(dest, token: str):
          "We recommend cropping them to a 1:1 ratio before uploading for the best result. "
          "You can use <b>squareanimage.com</b> for a quick free crop."),
         ("4", "Choose a mapping",
-         "Browse the mapping gallery below your images. Click any thumbnail to apply that style to all 10 images at once, "
-         "or use the dropdown next to each image to set a different style per image."),
+         "Each image has a small mapping thumbnail on the right of its row. Click it to open a mapping picker, "
+         "grouped by difficulty (Beginner to Expert). Click any mapping thumbnail to apply it to that image and close the picker. "
+         "Repeat for each of your 10 images."),
         ("5", "Preview",
          "Click <i>Preview 10 Foldo Images</i> to see a side-by-side preview of your original and transformed images."),
         ("6", "Download your PDF",

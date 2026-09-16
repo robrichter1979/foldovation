@@ -440,29 +440,6 @@ useEffect(() => {
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
-          {/* Actions */}
-          <div className="flex gap-3">
-            <button
-              onClick={generate}
-              disabled={!canGenerate}
-              className={`flex-1 py-3 px-6 rounded-xl font-semibold text-sm transition-colors ${
-                loading
-                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                  : images.length < MAX_IMAGES
-                  ? "bg-green-900 text-green-100 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
-              }`}
-            >
-              {loading
-                ? "Generating…"
-                : images.length === MAX_IMAGES
-                ? `Preview ${MAX_IMAGES} Foldo Images`
-                : images.length === 0
-                ? `Upload ${MAX_IMAGES} images to start`
-                : `Add ${MAX_IMAGES - images.length} more image${MAX_IMAGES - images.length !== 1 ? "s" : ""} to continue`}
-            </button>
-          </div>
-
           {error && (
             <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
               {error}
@@ -538,19 +515,24 @@ useEffect(() => {
                     {previewStatus[entry.id] === "error" && (
                       <span className="text-red-400 font-bold shrink-0">✗</span>
                     )}
-                    <button
-                      onClick={() => setOpenMappingId(openMappingId === entry.id ? null : entry.id)}
-                      className={`relative h-10 w-10 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
-                        openMappingId === entry.id ? "border-blue-500 shadow-sm" : "border-slate-200 hover:border-slate-300"
-                      }`}
-                      title={formatLabel(entry.mapping)}
-                    >
-                      {mappingSamples[entry.mapping] ? (
-                        <img src={mappingSamples[entry.mapping]} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-slate-100" />
-                      )}
-                    </button>
+                    <div className="flex flex-col items-center gap-0.5 shrink-0">
+                      <button
+                        onClick={() => setOpenMappingId(openMappingId === entry.id ? null : entry.id)}
+                        className={`relative h-10 w-10 rounded-lg overflow-hidden border-2 transition-all ${
+                          openMappingId === entry.id ? "border-blue-500 shadow-sm" : "border-slate-200 hover:border-slate-300"
+                        }`}
+                        title={formatLabel(entry.mapping)}
+                      >
+                        {mappingSamples[entry.mapping] ? (
+                          <img src={mappingSamples[entry.mapping]} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-slate-100" />
+                        )}
+                      </button>
+                      <span className="text-slate-400 w-10 text-center truncate" style={{ fontSize: "9px" }}>
+                        {formatLabel(entry.mapping)}
+                      </span>
+                    </div>
                     <button
                       onClick={() => removeImage(entry.id)}
                       aria-label="Remove"
@@ -636,6 +618,26 @@ useEffect(() => {
             </div>
           )}
 
+          {/* Preview button */}
+          <button
+            onClick={generate}
+            disabled={!canGenerate}
+            className={`w-full py-3 px-6 rounded-xl font-semibold text-sm transition-colors ${
+              loading
+                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                : images.length < MAX_IMAGES
+                ? "bg-green-900 text-green-100 cursor-not-allowed"
+                : "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+            }`}
+          >
+            {loading
+              ? "Generating…"
+              : images.length === MAX_IMAGES
+              ? `Preview ${MAX_IMAGES} Foldo Images`
+              : images.length === 0
+              ? `Upload ${MAX_IMAGES} images to start`
+              : `Add ${MAX_IMAGES - images.length} more image${MAX_IMAGES - images.length !== 1 ? "s" : ""} to continue`}
+          </button>
         </div>
 
         {/* Loading skeleton */}
