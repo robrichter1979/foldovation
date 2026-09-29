@@ -4,8 +4,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     cors_origin: str = "http://localhost:3000"
     mappings_path: str = "mappings/all_foldo_mappings_v1.json"
-    hidden_image_path: str = "image_data/hidden_v3.png"
-    background_image_path: str = "image_data/background_v4.png"
+    hidden_image_path: str = "image_data/hidden_v5.png"
+    background_image_path: str = "image_data/background_v5.png"
     default_image_path: str = "image_data/square_image.jpg"
     sample_image_path: str = "image_data/template_tiger_family.png"
     token_db: str = "tokens.db"

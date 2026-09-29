@@ -155,16 +155,20 @@ def _build(dest, token: str):
          f"Go to <b>{settings.app_url}</b> in your browser."),
         ("2", "Sign in",
          "Enter your <b>email address</b> and paste your <b>access token</b> into the form, then click <i>Continue</i>."),
-        ("3", "Upload your 10 images",
-         "Click the upload area (or drag and drop) to add exactly <b>10 square images</b>. "
-         "We recommend cropping them to a 1:1 ratio before uploading for the best result. "
-         "You can use <b>squareanimage.com</b> for a quick free crop."),
-        ("4", "Choose a mapping",
-         "Each image has a small mapping thumbnail on the right of its row. Click it to open a mapping picker, "
-         "grouped by difficulty (Beginner to Expert). Click any mapping thumbnail to apply it to that image and close the picker. "
-         "Repeat for each of your 10 images."),
-        ("5", "Preview",
-         "Click <i>Preview 10 Foldo Images</i> to see a side-by-side preview of your original and transformed images."),
+        ("3", "Upload &amp; crop your 10 images",
+         "Click the upload area (or drag and drop) to add exactly <b>10 images</b>. "
+         "For each image you can optionally crop it directly in the browser — choose <i>1:1</i> for a square crop or <i>Free</i> for any ratio, "
+         "adjust the zoom, then click <i>Apply crop</i>. Click <i>Skip</i> to keep the original. "
+         "Images that are not square will show a warning badge in the preview."),
+        ("4", "Choose a mapping style",
+         "Pick one of the six preset styles: <b>Easy</b>, <b>Medium</b>, or <b>Hard</b> set the overall difficulty level; "
+         "<b>Mix 1</b>, <b>Mix 2</b>, and <b>Mix 3</b> spread the difficulty across all images for extra variety. "
+         "Choose <b>Custom</b> to go straight to the preview and set each image's mapping individually. "
+         "Click <i>Preview 10 Foldo Images</i> to continue."),
+        ("5", "Preview &amp; adjust",
+         "A side-by-side preview of every original and transformed image is shown. "
+         "Each image has a <i>[mapping] · change</i> button — click it to open the full mapping picker and swap that image's mapping without re-uploading. "
+         "If two or more images share the same mapping, a warning will appear above the download button."),
         ("6", "Download your PDF",
          "Happy with the result? Click <i>Download PDF</i>. Your PDF will be generated and downloaded automatically. "
          "Your token is now used — if you need another session please contact us."),
@@ -201,10 +205,11 @@ def _build(dest, token: str):
     # ── Tips ─────────────────────────────────────────────────────────────────
     story.append(Paragraph("Tips for best results", heading_s))
     tips = [
-        "Use <b>square images</b> (1:1 ratio) — non-square images will be stretched to fit.",
+        "<b>Square images give the best result</b> — use the built-in crop tool to trim to 1:1 before proceeding.",
         "Higher resolution images produce sharper output.",
-        "Portraits and landscapes with a clear subject work best.",
-        "Try different mappings in the preview — you can change them without re-uploading.",
+        "Portraits and group photos with a clear subject work particularly well.",
+        "Use a different mapping for each image to ensure a unique challenge per image — the app will warn you if any two are the same.",
+        "You can swap any image's mapping directly on the preview page without going back to re-upload.",
     ]
     for tip in tips:
         story.append(Paragraph(f"• {tip}", body_s))

@@ -95,18 +95,35 @@ INTERNAL_EMAIL = "foldovation@gmail.com"
 def _send_pdf_copy(buyer_email: str, token: str, pdf_bytes: bytes):
     if not settings.gmail_app_password:
         return
-    msg = EmailMessage()
-    msg["Subject"] = f"PDF download — {buyer_email} [{token}]"
-    msg["From"] = INTERNAL_EMAIL
-    msg["To"] = INTERNAL_EMAIL
-    msg.set_content(f"Email:  {buyer_email}\nToken:  {token}\n")
-    msg.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename="foldo_images.pdf")
+    password = settings.gmail_app_password.replace(" ", "")
+    sent = True
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
             smtp.starttls()
-            smtp.login(INTERNAL_EMAIL, settings.gmail_app_password.replace(" ", ""))
-            smtp.send_message(msg)
-        sent = True
+            smtp.login(INTERNAL_EMAIL, password)
+
+            # Internal copy for us
+            internal = EmailMessage()
+            internal["Subject"] = f"PDF download — {buyer_email} [{token}]"
+            internal["From"] = INTERNAL_EMAIL
+            internal["To"] = INTERNAL_EMAIL
+            internal.set_content(f"Email:  {buyer_email}\nToken:  {token}\n")
+            internal.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename="foldo_images.pdf")
+            smtp.send_message(internal)
+
+            # Copy to the buyer
+            buyer = EmailMessage()
+            buyer["Subject"] = "Your Foldovation images"
+            buyer["From"] = INTERNAL_EMAIL
+            buyer["To"] = buyer_email
+            buyer.set_content(
+                "Hi,\n\n"
+                "Thank you for using Foldovation! Please find your personalised Foldo images attached as a PDF.\n\n"
+                "Happy folding!\n"
+                "The Foldovation Team\n"
+            )
+            buyer.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename="foldo_images.pdf")
+            smtp.send_message(buyer)
     except Exception:
         sent = False
     with get_db() as conn:
