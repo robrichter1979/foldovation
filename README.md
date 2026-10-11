@@ -182,8 +182,8 @@ ssh root@49.13.169.197
 curl -fsSL https://get.docker.com | sh
 
 # 3. Clone the repo
-git clone <your-repo-url> /opt/foldmyphoto
-cd /opt/foldmyphoto
+git clone https://github.com/robrichter1979/foldovation.git /root/foldovation
+cd /root/foldovation
 
 # 4. Create the .env file
 nano .env
@@ -197,9 +197,11 @@ docker compose up -d --build
 
 ```bash
 ssh root@49.13.169.197
-cd /opt/foldmyphoto
+cd /root/foldovation
 
 git pull
+cd web && npm run build && cd ..
+systemctl restart foldovation-web.service
 docker compose up -d --build
 ```
 

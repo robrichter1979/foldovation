@@ -12,6 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY foldo/ foldo/
+COPY scripts/ scripts/
 COPY mappings/ mappings/
 COPY image_data/ image_data/
 
