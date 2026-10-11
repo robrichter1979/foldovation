@@ -89,8 +89,6 @@ def build_and_cache_samples(mappings: dict, hidden, background, sample_image) ->
     return samples
 
 
-INTERNAL_EMAIL = "foldovation@gmail.com"
-
 
 def _send_pdf_copy(buyer_email: str, token: str, pdf_bytes: bytes):
     if not settings.gmail_app_password:
@@ -100,13 +98,13 @@ def _send_pdf_copy(buyer_email: str, token: str, pdf_bytes: bytes):
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
             smtp.starttls()
-            smtp.login(INTERNAL_EMAIL, password)
+            smtp.login(settings.internal_email, password)
 
             # Internal copy for us
             internal = EmailMessage()
             internal["Subject"] = f"PDF download — {buyer_email} [{token}]"
-            internal["From"] = INTERNAL_EMAIL
-            internal["To"] = INTERNAL_EMAIL
+            internal["From"] = settings.internal_email
+            internal["To"] = settings.internal_email
             internal.set_content(f"Email:  {buyer_email}\nToken:  {token}\n")
             internal.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename="foldo_images.pdf")
             smtp.send_message(internal)
@@ -114,7 +112,7 @@ def _send_pdf_copy(buyer_email: str, token: str, pdf_bytes: bytes):
             # Copy to the buyer
             buyer = EmailMessage()
             buyer["Subject"] = "Your Foldovation images"
-            buyer["From"] = INTERNAL_EMAIL
+            buyer["From"] = settings.internal_email
             buyer["To"] = buyer_email
             buyer.set_content(
                 "Hi,\n\n"
@@ -129,6 +127,39 @@ def _send_pdf_copy(buyer_email: str, token: str, pdf_bytes: bytes):
     with get_db() as conn:
         conn.execute(
             "UPDATE tokens SET pdf_sent = ?, pdf_sent_at = ? WHERE token = ?",
+            (1 if sent else 0, datetime.now(timezone.utc).isoformat(), token.strip()),
+        )
+        conn.commit()
+
+
+def _send_token_email(recipient: str, token: str):
+    if not settings.gmail_app_password:
+        return
+    from scripts.generate_instructions_pdf import build_pdf_bytes
+    pdf_bytes = build_pdf_bytes(token)
+    msg = EmailMessage()
+    msg["Subject"] = "Your Foldovation Access Token"
+    msg["From"] = settings.internal_email
+    msg["To"] = recipient
+    msg.set_content(
+        f"Hi,\n\nHere is your Foldovation access token:\n\n  {token}\n\n"
+        f"Visit {settings.app_url} and enter your email address along with this token to get started.\n\n"
+        "The token is single-use — once you download your PDF it will expire.\n\n"
+        "Please find the full step-by-step instructions attached as a PDF.\n\n"
+        "– The Foldovation Team\n"
+    )
+    msg.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename="foldmyphoto_instructions.pdf")
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+            smtp.starttls()
+            smtp.login(settings.internal_email, settings.gmail_app_password.replace(" ", ""))
+            smtp.send_message(msg)
+        sent = True
+    except Exception:
+        sent = False
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE tokens SET token_email_sent = ?, token_email_sent_at = ? WHERE token = ?",
             (1 if sent else 0, datetime.now(timezone.utc).isoformat(), token.strip()),
         )
         conn.commit()
@@ -163,6 +194,10 @@ async def lifespan(app: FastAPI):
     app.state.background = cv2.imread(settings.background_image_path)
     app.state.default_image = cv2.imread(settings.default_image_path)
     app.state.sample_image = cv2.imread(settings.sample_image_path)
+    app.state.fold_instructions = (
+        Image.open(settings.fold_instructions_path).convert("RGB")
+        if os.path.exists(settings.fold_instructions_path) else None
+    )
 
     if os.path.exists(settings.samples_cache_path):
         with open(settings.samples_cache_path) as f:
@@ -185,6 +220,15 @@ app.add_middleware(
 )
 
 
+MAX_IMAGE_PX = 1200
+
+def cap_image_size(img: np.ndarray) -> np.ndarray:
+    h, w = img.shape[:2]
+    if max(h, w) <= MAX_IMAGE_PX:
+        return img
+    scale = MAX_IMAGE_PX / max(h, w)
+    return cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+
 def encode_image(image: np.ndarray) -> str:
     _, buffer = cv2.imencode(".jpeg", image)
     return "data:image/jpeg;base64," + base64.b64encode(buffer).decode()
@@ -198,6 +242,39 @@ def list_mappings():
 @app.get("/api/mapping-samples")
 def mapping_samples():
     return {"samples": app.state.mapping_samples}
+
+
+class AdminTokenRequest(BaseModel):
+    password: str
+    email: str
+
+
+@app.post("/api/admin/generate-token")
+def admin_generate_token(body: AdminTokenRequest, background_tasks: BackgroundTasks):
+    if not settings.admin_password or body.password != settings.admin_password:
+        raise HTTPException(status_code=403, detail="Invalid admin password.")
+    email = body.email.lower().strip()
+    import secrets as _secrets
+    token = "FOLDO-" + _secrets.token_urlsafe(12).upper()[:12]
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO tokens (email, token, created_at) VALUES (?, ?, ?)",
+            (email, token, datetime.now(timezone.utc).isoformat()),
+        )
+        conn.commit()
+    background_tasks.add_task(_send_token_email, email, token)
+    return {"token": token, "email": email}
+
+
+@app.get("/api/admin/tokens")
+def admin_list_tokens(password: str):
+    if not settings.admin_password or password != settings.admin_password:
+        raise HTTPException(status_code=403, detail="Invalid admin password.")
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, email, token, used, created_at, used_at FROM tokens ORDER BY id DESC"
+        ).fetchall()
+    return {"tokens": [dict(r) for r in rows]}
 
 
 class TokenRequest(BaseModel):
@@ -224,6 +301,7 @@ async def generate_preview(
         img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
         if img is None:
             raise HTTPException(status_code=400, detail="Could not decode uploaded image")
+        img = cap_image_size(img)
     else:
         img = app.state.default_image
 
@@ -267,6 +345,7 @@ async def generate_docx(
         img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
         if img is None:
             raise HTTPException(status_code=400, detail=f"Could not decode image: {image_file.filename}")
+        img = cap_image_size(img)
         resized = cv2.resize(img, (400, 400), interpolation=cv2.INTER_LINEAR)
         decoded.append((mapping_name, resized))
 
@@ -322,6 +401,7 @@ async def generate_pdf(
         img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
         if img is None:
             raise HTTPException(status_code=400, detail=f"Could not decode image: {image_file.filename}")
+        img = cap_image_size(img)
         resized = cv2.resize(img, (400, 400), interpolation=cv2.INTER_LINEAR)
         decoded.append((mapping_name, resized))
 
@@ -345,6 +425,21 @@ async def generate_pdf(
         y = (page_h - img_px) // 2
         page.paste(Image.fromarray(cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)), (x, y))
         pil_images.append(page)
+
+    if app.state.fold_instructions is not None:
+        margin = 80
+        instr = app.state.fold_instructions
+        max_w = page_w - 2 * margin
+        max_h = page_h - 2 * margin
+        scale = min(max_w / instr.width, max_h / instr.height)
+        new_w = int(instr.width * scale)
+        new_h = int(instr.height * scale)
+        instr_resized = instr.resize((new_w, new_h), Image.LANCZOS)
+        instr_page = Image.new("RGB", (page_w, page_h), (255, 255, 255))
+        x = (page_w - new_w) // 2
+        y = (page_h - new_h) // 2
+        instr_page.paste(instr_resized, (x, y))
+        pil_images.append(instr_page)
 
     output = BytesIO()
     pil_images[0].save(

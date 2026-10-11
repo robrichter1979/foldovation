@@ -114,15 +114,15 @@ def _build(dest, token: str):
         rightMargin=20 * mm,
         topMargin=20 * mm,
         bottomMargin=20 * mm,
-        title="Foldovation — Getting Started",
+        title="FoldMyPhoto — Getting Started",
     )
 
     title_s, subtitle_s, heading_s, body_s, note_s, token_s = build_styles()
     story = []
 
     # ── Header ──────────────────────────────────────────────────────────────
-    story.append(Paragraph("Foldovation", title_s))
-    story.append(Paragraph("Your personalised Foldo artwork — step by step", subtitle_s))
+    story.append(Paragraph("FoldMyPhoto", title_s))
+    story.append(Paragraph("Your personalised photogami artwork — step by step", subtitle_s))
     story.append(HRFlowable(width="100%", thickness=1, color=BRAND_BORDER, spaceAfter=12))
 
     # ── Token box ────────────────────────────────────────────────────────────
@@ -155,8 +155,8 @@ def _build(dest, token: str):
          f"Go to <b>{settings.app_url}</b> in your browser."),
         ("2", "Sign in",
          "Enter your <b>email address</b> and paste your <b>access token</b> into the form, then click <i>Continue</i>."),
-        ("3", "Upload &amp; crop your 10 images",
-         "Click the upload area (or drag and drop) to add exactly <b>10 images</b>. "
+        ("3", "Upload &amp; crop your images",
+         "Click the upload area (or drag and drop) to add up to <b>25 images</b>. "
          "For each image you can optionally crop it directly in the browser — choose <i>1:1</i> for a square crop or <i>Free</i> for any ratio, "
          "adjust the zoom, then click <i>Apply crop</i>. Click <i>Skip</i> to keep the original. "
          "Images that are not square will show a warning badge in the preview."),
@@ -164,13 +164,14 @@ def _build(dest, token: str):
          "Pick one of the six preset styles: <b>Easy</b>, <b>Medium</b>, or <b>Hard</b> set the overall difficulty level; "
          "<b>Mix 1</b>, <b>Mix 2</b>, and <b>Mix 3</b> spread the difficulty across all images for extra variety. "
          "Choose <b>Custom</b> to go straight to the preview and set each image's mapping individually. "
-         "Click <i>Preview 10 Foldo Images</i> to continue."),
+         "Click <i>Preview Photogami Images</i> to continue."),
         ("5", "Preview &amp; adjust",
          "A side-by-side preview of every original and transformed image is shown. "
          "Each image has a <i>[mapping] · change</i> button — click it to open the full mapping picker and swap that image's mapping without re-uploading. "
          "If two or more images share the same mapping, a warning will appear above the download button."),
         ("6", "Download your PDF",
-         "Happy with the result? Click <i>Download PDF</i>. Your PDF will be generated and downloaded automatically. "
+         "Happy with the result? Click <i>Download PDF</i>. Your photogami artwork PDF will be generated and downloaded automatically. "
+         "A copy will also be sent to your email address for safe keeping. "
          "Your token is now used — if you need another session please contact us."),
     ]
 
@@ -218,7 +219,7 @@ def _build(dest, token: str):
     story.append(Spacer(1, 8 * mm))
     story.append(HRFlowable(width="100%", thickness=1, color=BRAND_BORDER, spaceAfter=6))
     story.append(Paragraph(
-        f"Questions? Reply to this email or reach us at <b>foldovation@gmail.com</b>",
+        f"Questions? Reach us at <b>{settings.internal_email}</b>",
         note_s,
     ))
 
@@ -229,8 +230,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate buyer instructions PDF.")
     parser.add_argument(
         "--output",
-        default="foldovation_instructions.pdf",
-        help="Output file path (default: foldovation_instructions.pdf)",
+        default="foldmyphoto_instructions.pdf",
+        help="Output file path (default: foldmyphoto_instructions.pdf)",
     )
     args = parser.parse_args()
     build_pdf(args.output)

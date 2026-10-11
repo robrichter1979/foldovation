@@ -11,18 +11,16 @@ function uuid() {
   })
 }
 
-const MAX_IMAGES = 10
-const CATEGORIES = ["Beginner", "Easy", "Intermediate", "Hard", "Expert"] as const
+const MAX_IMAGES = 25
+const CATEGORIES = ["Easy", "Medium", "Hard"] as const
 
 function getCategory(name: string): string {
   const match = name.match(/mapping_(\d+)/)
-  if (!match) return "Expert"
+  if (!match) return "Hard"
   const num = parseInt(match[1])
-  if (num <= 10) return "Beginner"
-  if (num <= 20) return "Easy"
-  if (num <= 30) return "Intermediate"
-  if (num <= 40) return "Hard"
-  return "Expert"
+  if (num <= 25) return "Easy"
+  if (num <= 50) return "Medium"
+  return "Hard"
 }
 
 type ImageEntry = {
@@ -48,12 +46,12 @@ type View = "token" | "upload" | "mapping" | "custom-mapping" | "preview" | "suc
 const m = (n: number) => `mapping_${String(n).padStart(3, "0")}_new`
 
 const PRESETS = [
-  { key: "easy",   label: "Easy",    description: "Mappings 1–20",       color: "emerald", mappings: [2,4,6,8,10,12,14,16,18,20].map(m) },
-  { key: "medium", label: "Medium",  description: "Mappings 20–40",      color: "amber",   mappings: [22,24,26,28,30,32,34,36,38,40].map(m) },
-  { key: "hard",   label: "Hard",    description: "Mappings 40–60",      color: "red",     mappings: [42,44,46,48,50,52,54,56,58,60].map(m) },
-  { key: "mix1",   label: "Mix 1",   description: "Spread across levels", color: "violet",  mappings: [2,8,14,20,26,32,38,44,50,56].map(m) },
-  { key: "mix2",   label: "Mix 2",   description: "Spread across levels", color: "violet",  mappings: [4,10,16,22,28,34,40,46,52,58].map(m) },
-  { key: "mix3",   label: "Mix 3",   description: "Spread across levels", color: "violet",  mappings: [6,12,18,24,30,36,42,48,54,60].map(m) },
+  { key: "easy",   label: "Easy",    description: "Mappings 1–25",        color: "emerald", mappings: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25].map(m) },
+  { key: "medium", label: "Medium",  description: "Mappings 26–50",       color: "amber",   mappings: [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50].map(m) },
+  { key: "hard",   label: "Hard",    description: "Mappings 51–75",       color: "red",     mappings: [51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75].map(m) },
+  { key: "mix1",   label: "Mix 1",   description: "25 mappings (n % 3 = 1)", color: "violet",  mappings: [1,4,7,10,13,16,19,22,25,28,31,34,37,40,43,46,49,52,55,58,61,64,67,70,73].map(m) },
+  { key: "mix2",   label: "Mix 2",   description: "25 mappings (n % 3 = 2)", color: "violet",  mappings: [2,5,8,11,14,17,20,23,26,29,32,35,38,41,44,47,50,53,56,59,62,65,68,71,74].map(m) },
+  { key: "mix3",   label: "Mix 3",   description: "25 mappings (n % 3 = 0)", color: "violet",  mappings: [3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,60,63,66,69,72,75].map(m) },
   { key: "custom", label: "Custom",  description: "Pick per image",       color: "slate",   mappings: [] },
 ] as const
 
@@ -225,9 +223,11 @@ export default function Home() {
     setSelectedPreset(key)
     const preset = PRESETS.find((p) => p.key === key)
     if (!preset || preset.mappings.length === 0) return
-    setImages((prev) =>
-      prev.map((e, i) => ({ ...e, mapping: preset.mappings[i] ?? e.mapping }))
-    )
+    setImages((prev) => {
+      const pool = preset.mappings as readonly string[]
+      const step = pool.length / prev.length
+      return prev.map((e, i) => ({ ...e, mapping: pool[Math.round(i * step)] ?? e.mapping }))
+    })
   }
 
   const applyCrop = (id: string, blob: Blob) => {
@@ -368,7 +368,7 @@ export default function Home() {
       <div className="min-h-screen bg-slate-50 font-sans flex items-center justify-center px-6">
         <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-6">
           <div>
-            <h1 className="text-lg font-semibold text-slate-900">Foldovation</h1>
+            <h1 className="text-lg font-semibold text-slate-900">FoldMyPhoto</h1>
             <p className="text-sm text-slate-500 mt-1">Enter your email and access token to continue.</p>
           </div>
           <form onSubmit={submitToken} className="space-y-4">
@@ -423,7 +423,7 @@ export default function Home() {
           <div>
             <h1 className="text-lg font-semibold text-slate-900">Download complete!</h1>
             <p className="text-sm text-slate-500 mt-2">
-              Thanks for using Foldovation! Your file{" "}
+              Thanks for using FoldMyPhoto! Your file{" "}
               <strong className="text-slate-700">foldo_images.pdf</strong> has been saved to your desktop.
             </p>
           </div>
@@ -444,7 +444,7 @@ export default function Home() {
           >
             ← Back
           </button>
-          <h1 className="text-lg font-semibold tracking-tight text-slate-900">Foldovation</h1>
+          <h1 className="text-lg font-semibold tracking-tight text-slate-900">FoldMyPhoto</h1>
         </header>
         <main className="max-w-4xl mx-auto px-6 py-10 space-y-8">
           <StepIndicator current="preview" />
@@ -576,7 +576,7 @@ export default function Home() {
             ← Back
           </button>
         )}
-        <h1 className="text-lg font-semibold tracking-tight text-slate-900">Foldovation</h1>
+        <h1 className="text-lg font-semibold tracking-tight text-slate-900">FoldMyPhoto</h1>
       </header>
 
       {/* Mapping picker backdrop */}
@@ -786,7 +786,7 @@ export default function Home() {
                   loading ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
                 }`}
               >
-                {loading ? "Generating…" : `Preview ${MAX_IMAGES} Foldo Images`}
+                {loading ? "Generating…" : `Preview ${MAX_IMAGES} FoldMyPhoto Images`}
               </button>
             )}
           </div>
@@ -891,7 +891,7 @@ export default function Home() {
                 loading ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
               }`}
             >
-              {loading ? "Generating…" : `Preview ${MAX_IMAGES} Foldo Images`}
+              {loading ? "Generating…" : `Preview ${MAX_IMAGES} FoldMyPhoto Images`}
             </button>
           </div>
         )}

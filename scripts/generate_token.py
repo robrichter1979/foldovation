@@ -12,7 +12,7 @@ sys.path.insert(0, __import__("os").path.join(__import__("os").path.dirname(__fi
 from foldo.config import settings
 from scripts.generate_instructions_pdf import build_pdf_bytes
 
-SENDER = "foldovation@gmail.com"
+SENDER = settings.internal_email
 
 
 def init_db(conn: sqlite3.Connection):
@@ -60,13 +60,13 @@ def send_token_email(recipient: str, token: str):
         return
 
     msg = EmailMessage()
-    msg["Subject"] = "Your Foldovation Access Token"
+    msg["Subject"] = "Your FoldMyPhoto Access Token"
     msg["From"] = SENDER
     msg["To"] = recipient
     msg.set_content(f"""\
 Hi,
 
-Here is your Foldovation access token:
+Here is your FoldMyPhoto access token:
 
   {token}
 
@@ -76,10 +76,10 @@ The token is single-use — once you download your PDF it will expire.
 
 Please find the full step-by-step instructions attached as a PDF.
 
-– The Foldovation Team
+– The FoldMyPhoto Team
 """)
     pdf_bytes = build_pdf_bytes(token)
-    msg.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename="foldovation_instructions.pdf")
+    msg.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename="foldmyphoto_instructions.pdf")
 
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as smtp:

@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Foldovation",
-  description: "Create your Foldovation PDF",
+  title: "FoldMyPhoto",
+  description: "Create your FoldMyPhoto PDF",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
