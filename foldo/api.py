@@ -220,7 +220,7 @@ app.add_middleware(
 )
 
 
-MAX_IMAGE_PX = 1200
+MAX_IMAGE_PX = 400
 
 def cap_image_size(img: np.ndarray) -> np.ndarray:
     h, w = img.shape[:2]

@@ -41,7 +41,7 @@ type ResultEntry = {
   foldo: string
 }
 
-type View = "token" | "upload" | "mapping" | "custom-mapping" | "preview" | "success"
+type View = "token" | "upload" | "mapping" | "custom-mapping" | "preview" | "downloading" | "success"
 
 const m = (n: number) => `mapping_${String(n).padStart(3, "0")}_new`
 
@@ -98,7 +98,6 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [truncationWarning, setTruncationWarning] = useState<string | null>(null)
-  const [downloading, setDownloading] = useState(false)
   const [openMappingId, setOpenMappingId] = useState<string | null>(null)
   const [selectedPreset, setSelectedPreset] = useState<PresetKey | null>(null)
   const [reloadingIds, setReloadingIds] = useState<Record<string, boolean>>({})
@@ -294,8 +293,8 @@ export default function Home() {
   }
 
   const downloadDocx = async () => {
-    setDownloading(true)
     setError(null)
+    setView("downloading")
     try {
       const form = new FormData()
       images.forEach((entry) => form.append("images", entry.file))
@@ -318,8 +317,7 @@ export default function Home() {
       setView("success")
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Download failed")
-    } finally {
-      setDownloading(false)
+      setView("preview")
     }
   }
 
@@ -415,6 +413,22 @@ export default function Home() {
   }
 
   // ── Success ───────────────────────────────────────────────────────────────
+  if (view === "downloading") {
+    return (
+      <div className="min-h-screen bg-slate-50 font-sans flex items-center justify-center px-6">
+        <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-6 text-center">
+          <div className="h-14 w-14 rounded-full bg-blue-50 flex items-center justify-center mx-auto">
+            <span className="h-7 w-7 rounded-full border-[3px] border-blue-500 border-t-transparent animate-spin" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">Generating your PDF…</h1>
+            <p className="text-sm text-slate-500 mt-2">This may take a minute. Please keep this page open.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (view === "success") {
     return (
       <div className="min-h-screen bg-slate-50 font-sans flex items-center justify-center px-6">
@@ -548,12 +562,9 @@ export default function Home() {
             </button>
             <button
               onClick={downloadDocx}
-              disabled={downloading}
-              className={`flex-1 py-3 px-6 rounded-xl font-semibold text-sm transition-colors ${
-                downloading ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-emerald-700 text-white hover:bg-emerald-800 cursor-pointer"
-              }`}
+              className="flex-1 py-3 px-6 rounded-xl font-semibold text-sm transition-colors bg-emerald-700 text-white hover:bg-emerald-800 cursor-pointer"
             >
-              {downloading ? "Creating PDF…" : "Download PDF"}
+              Download PDF
             </button>
           </div>
           {error && (

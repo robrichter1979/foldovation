@@ -27,24 +27,31 @@ def restore_tuples(obj):
     return obj
 
 
+_mask_cache: dict = {}
+
+def _get_masks(size: int, diagonal: bool):
+    key = (size, diagonal)
+    if key not in _mask_cache:
+        if diagonal:
+            points1 = np.array([[0, 0], [size, size], [size, 0]], np.int32)
+            points2 = np.array([[0, 0], [size, size], [0, size]], np.int32)
+        else:
+            points1 = np.array([[0, 0], [size, 0], [0, size]], np.int32)
+            points2 = np.array([[size, 0], [0, size], [size, size]], np.int32)
+        mask1 = np.zeros((size, size), dtype=np.uint8)
+        mask2 = np.zeros((size, size), dtype=np.uint8)
+        cv2.fillConvexPoly(mask1, points1, 255)
+        cv2.fillConvexPoly(mask2, points2, 255)
+        _mask_cache[key] = (mask1, mask2)
+    return _mask_cache[key]
+
+
 def divide_image_into_triangles(image, diagonal=True):
-    height, width, channels = image.shape
+    height, width, _ = image.shape
     if height != width:
         raise ValueError("The image is not square!")
 
-    if diagonal:
-        points1 = np.array([[0, 0], [width, height], [width, 0]], np.int32)
-        points2 = np.array([[0, 0], [width, height], [0, height]], np.int32)
-
-    if not diagonal:
-        points1 = np.array([[0, 0], [width, 0], [0, height]], np.int32)
-        points2 = np.array([[width, 0], [0, height], [width, height]], np.int32)
-
-    mask1 = np.zeros((height, width), dtype=np.uint8)
-    mask2 = np.zeros((height, width), dtype=np.uint8)
-    cv2.fillConvexPoly(mask1, points1, 255)
-    cv2.fillConvexPoly(mask2, points2, 255)
-
+    mask1, mask2 = _get_masks(height, diagonal)
     upper_triangle = cv2.bitwise_and(image, image, mask=mask1)
     lower_triangle = cv2.bitwise_and(image, image, mask=mask2)
 
@@ -82,6 +89,13 @@ def combine_to_final_image_new(mapping_dict, image_mapping, splits=8, original_s
     final_square_image_dict = dict()
     row_image_dict = dict()
 
+    tri_cache = {}
+    for img_type in ('hidden', 'background'):
+        img = image_mapping.get(img_type)
+        if img is not None:
+            for diag in (True, False):
+                tri_cache[(img_type, diag)] = divide_image_into_triangles(img, diag)
+
     for i in range(splits):
         for j in range(splits):
             square_image_dict = mapping_dict.get((i, j))
@@ -105,8 +119,7 @@ def combine_to_final_image_new(mapping_dict, image_mapping, splits=8, original_s
 
                 upper_type = square_image_dict['triangles']['image_upper']['image_type']
                 if upper_type in ('hidden', 'background'):
-                    upper_triangle, _ = divide_image_into_triangles(
-                        image_mapping.get(upper_type), main_diagonal_choice)
+                    upper_triangle, _ = tri_cache[(upper_type, main_diagonal_choice)]
                 elif upper_type == 'original':
                     relevant_square = original_square_images.get(
                         square_image_dict['triangles']['image_upper']['position'])
@@ -116,8 +129,7 @@ def combine_to_final_image_new(mapping_dict, image_mapping, splits=8, original_s
 
                 lower_type = square_image_dict['triangles']['image_lower']['image_type']
                 if lower_type in ('hidden', 'background'):
-                    _, lower_triangle = divide_image_into_triangles(
-                        image_mapping.get(lower_type), main_diagonal_choice)
+                    _, lower_triangle = tri_cache[(lower_type, main_diagonal_choice)]
                 elif lower_type == 'original':
                     relevant_square = original_square_images.get(
                         square_image_dict['triangles']['image_lower']['position'])
