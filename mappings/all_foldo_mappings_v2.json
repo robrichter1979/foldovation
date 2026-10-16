@@ -25070,7 +25070,7 @@
       "full_square": {
         "image_type": "original",
         "position": [
-          1,
+          0,
           0
         ],
         "flipped": null,
@@ -25081,7 +25081,7 @@
       "full_square": {
         "image_type": "original",
         "position": [
-          1,
+          0,
           1
         ],
         "flipped": null,
@@ -35653,17 +35653,17 @@
       "triangles": {
         "diagonal": true,
         "image_upper": {
-          "image_type": "hidden"
-        },
-        "image_lower": {
           "image_type": "original",
           "position": [
             3,
             0
           ]
         },
+        "image_lower": {
+          "image_type": "hidden"
+        },
         "flipped": null,
-        "rotated": -1
+        "rotated": 1
       }
     },
     "(2, 0)": {
@@ -36904,7 +36904,7 @@
           "image_type": "original",
           "position": [
             1,
-            1
+            0
           ]
         },
         "image_lower": {
@@ -38047,17 +38047,17 @@
       "triangles": {
         "diagonal": true,
         "image_upper": {
-          "image_type": "hidden"
-        },
-        "image_lower": {
           "image_type": "original",
           "position": [
             2,
             2
           ]
         },
+        "image_lower": {
+          "image_type": "hidden"
+        },
         "flipped": null,
-        "rotated": -1
+        "rotated": 1
       }
     },
     "(7, 0)": {

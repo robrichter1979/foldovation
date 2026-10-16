@@ -172,6 +172,7 @@ def _build(dest, token: str):
         ("6", "Download your PDF",
          "Happy with the result? Click <i>Download PDF</i>. Your photogami artwork PDF will be generated and downloaded automatically. "
          "A copy will also be sent to your email address for safe keeping. "
+         "When printing, make sure to print <b>single-sided</b> — double-sided printing will ruin the folding result. "
          "Your token is now used — if you need another session please contact us."),
     ]
 
